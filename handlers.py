@@ -1,6 +1,11 @@
 import json
+import uuid
+import tornado.escape
+import datetime
+import threading
 
-from tornado.web import RequestHandler    
+from datetime import timedelta
+from tornado.web import RequestHandler
 
 
 class BaseHandler(RequestHandler):
@@ -18,12 +23,39 @@ class BaseHandler(RequestHandler):
 
 
 class TestHandler(BaseHandler):
+
     def get(self):
         self.write("lmao cat")
 
 
 class RoomsPostHandler(BaseHandler):
-    def get(self):
-        room = self.rooms.find({'id': 1})[0]
+
+    def post(self):
+        user_data = tornado.escape.json_decode(self.request.body)
+        user_data['donated'] = 0
+        user_data['prize_url'] = ''
+        user_data['id'] = uuid.uuid4().hex[:10]
+
+        start_time = datetime.datetime.utcnow()
+        room_id = uuid.uuid4().hex[:10]  
+
+        room = {
+            'id': room_id,
+            'raised': 0,
+            'start_time': start_time.isoformat(),
+            'users': {
+                user_data['id']: user_data
+            }
+        }
+        self.rooms.insert_one(room)
+
+        run_at = start_time + timedelta(hours=1)
+        delay = (run_at - now).total_seconds()
+        threading.Timer(delay, buy_items).start()
+
         room.pop('_id', None)
         self.write(json.dumps(room))
+
+
+def buy_items():
+    pass
