@@ -11,8 +11,12 @@ from handlers import *
 class App(Application):
     def __init__(self, **overrides):
         handlers = [
-            (r"/test?", TestHandler),
-            (r"/rooms?", RoomsPostHandler),
+            (r'/test?', TestHandler),
+            (r'/users?', UsersHandler),
+            (r'/auth?', AuthHandler),
+            (r'/rooms?', RoomsPostHandler),
+            (r'/rooms/([A-Za-z0-9]+)?', RoomsHandler),
+            (r'/rooms/([A-Za-z0-9]+)/pitch?', PitchesHandler)
         ]
 
         Application.__init__(self, handlers)
