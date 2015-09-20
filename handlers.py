@@ -3,6 +3,7 @@ import uuid
 import tornado.escape
 import datetime
 import threading
+import amazon_handler as amzn
 
 from datetime import timedelta
 from tornado.web import RequestHandler
@@ -86,7 +87,8 @@ class RoomsPostHandler(BaseHandler):
         room_id = uuid.uuid4().hex[:10]
 
         # generate 10 items < 1
-        items = []
+        items = amzn.find_item(1, 3)
+        print('lol')
 
         room = {
             'id': room_id,
@@ -121,8 +123,6 @@ class RoomsHandler(BaseHandler):
         user_id = data['id']
 
         user = self.users.find_one({'id': user_id})
-        print(user)
-        print(room)
 
         if not user:
             self.fail()
@@ -140,7 +140,8 @@ class RoomsHandler(BaseHandler):
         room['users'][user_id] = user_data
         room['raised'] += 1
 
-        self.rooms.update_one({'id': room_id}, {'$set': {'users': room['users']}, '$inc': {'raised': 1}})
+        items = amzn.find_item(int(room['raised'] / float(len(room['users']))), 3)
+        self.rooms.update_one({'id': room_id}, {'$set': {'users': room['users'], 'items': items}, '$inc': {'raised': 1}})
 
         room.pop('_id')
         self.write(json.dumps(room))
@@ -159,6 +160,10 @@ class PitchesHandler(BaseHandler):
         user_id = data['id']
         pitch = float(data['pitch'])
 
+        if pitch < 1:
+            self.fail()
+            return
+
         user = self.users.find_one({'id': user_id})
 
         if not user or user_id not in room['users']:
@@ -167,8 +172,12 @@ class PitchesHandler(BaseHandler):
 
         room['users'][user_id]['donated'] += pitch
         room['raised'] += pitch
+        
+        print(room['raised'] / float(len(room['users'])))
+        items = amzn.find_item(int(room['raised'] / float(len(room['users']))), 3)
+        self.rooms.update_one({'id': room_id}, {'$set': {'users': room['users'], 'items': items}, '$inc': {'raised': pitch}})
 
-        self.rooms.update_one({'id': room_id}, {'$set': {'users': room['users']}, '$inc': {'raised': pitch}})
+        room.pop('_id', None)
         self.write(json.dumps(room))
 
 
